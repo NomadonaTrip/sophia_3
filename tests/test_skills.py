@@ -157,6 +157,23 @@ def test_loop_decision_table_rows_are_mutually_exclusive_at_cap(loop_text):
     assert "cap" not in pass_state.lower()
 
 
+def test_loop_documents_the_source_citation_convention(loop_text):
+    """I2: fabricated_stat_scan's [source: ...] convention must be documented
+    where a generating agent will read it, or the invariant is unsatisfiable
+    except by deleting every number.
+    """
+    assert "[source:" in loop_text
+    assert "no-fabricated-stats" in loop_text or "fabricated_stat_scan" in loop_text
+
+
+def test_loop_documents_the_section_marker_convention(loop_text):
+    """I3: the <!-- section: name --> marker that length_bands relies on must
+    be documented, or every configured band reports 'missing from copy'.
+    """
+    assert "<!-- section:" in loop_text
+    assert "length_bands" in loop_text
+
+
 def test_research_first_separates_presence_from_search():
     """An empty retrieval result must not be treated as proof an input is
     absent -- retrieval returns [] both when a client directory is missing

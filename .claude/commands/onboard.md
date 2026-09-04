@@ -87,5 +87,10 @@ python3 -m interfaces.retrieval --client $1 --query "" --scope voice
 python3 tools/eval.py --client $1 --workflow webcopy --copy <one-of-the-samples>
 ```
 
-The samples should mostly pass their own rubric. If a sample fails an invariant
-criterion, the rubric is wrong — fix it with the operator before finishing.
+The samples should mostly pass their own rubric. If a sample fails
+`no-fabricated-stats`, that usually means the sample's own statistics are
+uncited — not that the rubric is wrong; see the `gen-eval-loop` skill for the
+`[source: ...]` citation convention and cite the sample's numbers (or accept
+the fail) before concluding anything is broken. If a sample fails an
+invariant criterion for a reason you disagree with, fix the rubric with the
+operator before finishing.
