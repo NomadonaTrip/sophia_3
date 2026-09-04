@@ -140,3 +140,45 @@ def test_cli_validate_exits_two_on_a_malformed_agent(tmp_path):
     )
     assert proc.returncode == 2
     assert "frontmatter" in proc.stderr
+
+
+def test_cli_validate_exits_two_on_a_missing_agents_dir(tmp_path):
+    missing = tmp_path / "does-not-exist"
+    proc = subprocess.run(
+        [sys.executable, "-m", "interfaces.delegation", "--validate",
+         "--agents-dir", str(missing)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert str(missing) in proc.stderr
+
+
+def test_well_formed_role_heading_passes(tmp_path):
+    path = tmp_path / "sample.md"
+    path.write_text(GOOD_AGENT)
+    spec = parse_agent(path)
+    assert spec.name == "sample"
+
+
+@pytest.mark.parametrize(
+    "heading",
+    ["### Role", "## Roles", "## Role and scope"],
+    ids=["deeper-heading", "trailing-word", "extra-words"],
+)
+def test_naive_role_lookalikes_do_not_satisfy_the_section(tmp_path, heading):
+    path = tmp_path / "sample.md"
+    path.write_text(GOOD_AGENT.replace("## Role\n", f"{heading}\n"))
+    with pytest.raises(DelegationError, match="Role"):
+        parse_agent(path)
+
+
+def test_role_heading_inside_a_fenced_code_block_does_not_count(tmp_path):
+    path = tmp_path / "sample.md"
+    text = GOOD_AGENT.replace(
+        "## Role\n\nDo the sample thing.\n\n",
+        "```\n## Role\n```\n\n",
+    )
+    path.write_text(text)
+    with pytest.raises(DelegationError, match="Role"):
+        parse_agent(path)

@@ -7,6 +7,8 @@ modes: [generate]
 rubric_path: evals/<workflow-name>.md
 ---
 
+`name` must be a lowercase alphanumeric identifier with no dashes (`[a-z][a-z0-9_]*`) — a dash breaks the `{timestamp}-{workflow}-{slug}` run-id split that episodic lookups rely on.
+
 ## Role
 
 <What this agent produces, for whom, and what "done" means. One paragraph.>
@@ -36,5 +38,3 @@ it lives in one place so every workflow runs the same one.
 
 Escalate rather than ship when: any required input is missing; the spine fails;
 or the iteration cap is reached. Name the specific criterion and what was tried.
-
-`name` must be a lowercase alphanumeric identifier with no dashes (`[a-z][a-z0-9_]*`) — a dash breaks the `{timestamp}-{workflow}-{slug}` run-id split that episodic lookups rely on.
