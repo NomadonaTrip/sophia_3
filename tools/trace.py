@@ -103,9 +103,14 @@ def _validate_iteration(iteration: object) -> None:
                 f"got {criterion['verdict']!r}"
             )
         confidence = criterion["confidence"]
-        if not isinstance(confidence, (int, float)) or not 0.0 <= confidence <= 1.0:
+        if (
+            isinstance(confidence, bool)
+            or not isinstance(confidence, (int, float))
+            or not 0.0 <= confidence <= 1.0
+        ):
             raise TraceError(
-                f"criterion confidence must be between 0 and 1, got {confidence!r}"
+                f"criterion confidence must be a number between 0 and 1, "
+                f"got {confidence!r}"
             )
 
 

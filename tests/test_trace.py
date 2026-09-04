@@ -94,6 +94,18 @@ def test_criterion_confidence_must_be_between_zero_and_one():
         validate_trace(payload)
 
 
+def test_criterion_confidence_rejects_a_boolean():
+    """I7: bool is an int subclass in Python, so 0.0 <= True <= 1.0 holds --
+    without an explicit guard a boolean confidence silently passes validation
+    and gets written into the calibration substrate the whole design
+    accumulates. interfaces/performance.py already carries this exact guard.
+    """
+    payload = valid_payload()
+    payload["iterations"][0]["criteria"][0]["confidence"] = True
+    with pytest.raises(TraceError, match="confidence"):
+        validate_trace(payload)
+
+
 def test_criterion_requires_a_rationale():
     payload = valid_payload()
     del payload["iterations"][0]["criteria"][0]["rationale"]
