@@ -142,6 +142,23 @@ def test_cli_validate_exits_two_on_a_malformed_agent(tmp_path):
     assert "frontmatter" in proc.stderr
 
 
+def test_cli_validate_exits_two_on_a_non_utf8_agent_file(tmp_path):
+    """I4: CLAUDE.md promises 'exit code 2 from any tool'. Before the fix,
+    main() caught only DelegationError, so a non-UTF-8 agent file (an
+    UnicodeDecodeError from path.read_text()) escaped as an uncaught
+    traceback at exit 1.
+    """
+    (tmp_path / "broken.md").write_bytes(b"---\nname: x\n---\n\xff\xfe not utf8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "interfaces.delegation", "--validate",
+         "--agents-dir", str(tmp_path)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert proc.stderr.strip()
+
+
 def test_cli_validate_exits_two_on_a_missing_agents_dir(tmp_path):
     missing = tmp_path / "does-not-exist"
     proc = subprocess.run(

@@ -118,6 +118,26 @@ def test_scopes_tuple_matches_spec():
     assert SCOPES == ("voice", "business", "icp", "evals", "episodic", "performance")
 
 
+def test_cli_exits_two_on_unexpected_error(memory_root):
+    """I4: CLAUDE.md promises 'exit code 2 from any tool', but main() had no
+    handler at all -- an unexpected error (here, an OSError from an
+    absurdly long client name) would previously escape as an uncaught
+    traceback at exit 1.
+    """
+    proc = subprocess.run(
+        [
+            sys.executable, "-m", "interfaces.retrieval",
+            "--memory-root", str(memory_root),
+            "--client", "x" * 300,
+            "--query", "leverage",
+        ],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert proc.stderr.strip()
+
+
 def test_module_cli_emits_json(memory_root):
     proc = subprocess.run(
         [

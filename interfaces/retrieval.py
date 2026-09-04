@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Protocol
@@ -129,10 +130,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--memory-root", type=Path, default=DEFAULT_MEMORY_ROOT)
     args = parser.parse_args(argv)
 
-    hits = GrepRetriever(args.memory_root).search(
-        args.query, client=args.client, scope=args.scope, limit=args.limit
-    )
-    print(json.dumps([asdict(h) for h in hits], indent=2))
+    try:
+        hits = GrepRetriever(args.memory_root).search(
+            args.query, client=args.client, scope=args.scope, limit=args.limit
+        )
+        output = json.dumps([asdict(h) for h in hits], indent=2)
+    except Exception as exc:
+        print(f"retrieval failed: {exc}", file=sys.stderr)
+        return 2
+
+    print(output)
     return 0
 
 

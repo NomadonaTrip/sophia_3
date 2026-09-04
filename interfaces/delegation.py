@@ -162,11 +162,15 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         specs = load_workflows(args.agents_dir)
+        output = json.dumps([asdict(s) for s in specs], indent=2)
     except DelegationError as exc:
         print(str(exc), file=sys.stderr)
         return 2
+    except Exception as exc:
+        print(f"delegation failed: {exc}", file=sys.stderr)
+        return 2
 
-    print(json.dumps([asdict(s) for s in specs], indent=2))
+    print(output)
     return 0
 
 
