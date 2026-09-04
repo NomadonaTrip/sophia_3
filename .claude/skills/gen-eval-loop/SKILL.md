@@ -16,11 +16,49 @@ subscription-budget guard. Never loop past it.
 Invoke the `research-first` skill. If any of voice, client intelligence,
 research, or rubric is missing, escalate now and generate nothing.
 
+Obtain the run id from the tool that owns the format — never invent one:
+
+```bash
+python3 tools/episodic.py new-run-id --workflow <workflow> --slug <page-slug>
+```
+
+Exit 0 prints the run id on stdout. Exit 2 means the slug was unusable (e.g.
+it reduces to empty); fix the slug and try again. This run id is what later
+lookups (`find_latest_shipped`, in particular what `/revise` relies on) parse
+back apart, so a hand-built id will not round-trip.
+
 ## Step 1 — Generate draft N
 
 Write the draft against the brief, the voice markers, and the research. Save it
 to the run directory as `draft.md` — the operator's edit magnitude is measured
 against this file, so it must be the copy you actually hand over.
+
+**Cite every statistic.** `tools/eval.py`'s `no-fabricated-stats` invariant
+requires a `[source: ...]` citation in the *same sentence* as any percentage or
+large number (four digits or more; years are exempt). For example:
+
+> Our clients see 30% faster response times [source: 2026 client survey].
+
+A statistic with no citation in its sentence fails the check — cite it or cut
+it. This is the only way to satisfy the invariant without deleting every
+number from the copy.
+
+**Emit section markers when the rubric configures `length_bands`.** For each
+band name in the rubric's `length_bands` config (e.g. `h1`, `hero_subhead`,
+`body_section`), wrap the corresponding text in the draft with a matching
+marker so `tools/eval.py` can find it:
+
+```
+<!-- section: h1 -->
+Tree surgery, done right.
+
+<!-- section: hero_subhead -->
+Straight talk about what your trees need, from people who climb them.
+```
+
+A band with no matching marker in the copy reports "missing from copy" even
+if the text is present elsewhere in the draft — the marker is what locates
+the section, not the content alone.
 
 ## Step 2 — Deterministic check
 

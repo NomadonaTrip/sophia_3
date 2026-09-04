@@ -5,8 +5,14 @@ argument-hint: <client-name> <page-brief>
 
 # Web copy for $1
 
+Obtain the run id before delegating — never invent one:
+
+```bash
+python3 tools/episodic.py new-run-id --workflow webcopy --slug <page-slug>
+```
+
 Delegate to the `webcopy` agent in generate mode. Pass it the client, the brief,
-and a page slug for the run id.
+and the run id printed above.
 
 The agent runs the `gen-eval-loop` skill and returns either copy that passed
 every criterion, or an escalation naming a specific sticking point.

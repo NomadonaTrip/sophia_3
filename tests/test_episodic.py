@@ -1,8 +1,13 @@
+import subprocess
+import sys
+
 import pytest
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from tools.episodic import find_latest_shipped, new_run_id, run_dir, slugify
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_slugify_lowercases_and_hyphenates():
@@ -89,3 +94,42 @@ def test_new_run_id_converts_non_utc_aware_datetime():
     # In UTC this is 2026-09-04 08:05:00Z
     result = new_run_id("webcopy", "home", now=local_time)
     assert result == "20260904T080500Z-webcopy-home"
+
+
+# --- CLI (C1: the prompt layer must obtain run ids through this, never invent one) ---
+
+def _run_cli(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(REPO_ROOT / "tools" / "episodic.py"), *args],
+        capture_output=True, text=True,
+    )
+
+
+def test_cli_new_run_id_prints_a_run_id():
+    proc = _run_cli("new-run-id", "--workflow", "webcopy", "--slug", "Tree Surgery")
+    assert proc.returncode == 0, proc.stderr
+    run_id = proc.stdout.strip()
+    assert run_id.endswith("-webcopy-tree-surgery")
+
+
+def test_cli_new_run_id_exits_two_on_unusable_slug():
+    proc = _run_cli("new-run-id", "--workflow", "webcopy", "--slug", "///")
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert "slug" in proc.stderr
+
+
+def test_cli_run_id_round_trips_through_find_latest_shipped(tmp_path):
+    """End-to-end: a run id minted by the CLI is later found by
+    find_latest_shipped for the same slug -- the exact bridge C1 closes.
+    """
+    proc = _run_cli("new-run-id", "--workflow", "webcopy", "--slug", "Tree Surgery")
+    assert proc.returncode == 0, proc.stderr
+    run_id = proc.stdout.strip()
+
+    d = run_dir(tmp_path, "orban-forest", run_id, create=True)
+    (d / "shipped.md").write_text("Shipped copy.")
+
+    found = find_latest_shipped(tmp_path, "orban-forest", "Tree Surgery")
+    assert found is not None
+    assert found == d / "shipped.md"

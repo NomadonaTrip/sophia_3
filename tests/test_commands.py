@@ -44,6 +44,15 @@ def test_onboard_uses_the_voice_match_skill(onboard):
     assert "voice-match" in onboard
 
 
+def test_onboard_verify_step_does_not_blame_the_rubric_for_uncited_stats(onboard):
+    """I2: a sample failing no-fabricated-stats usually means its statistics
+    are uncited, not that the rubric is wrong -- the old unqualified "the
+    rubric is wrong" language sent operators to weaken correct boilerplate.
+    """
+    assert "no-fabricated-stats" in onboard
+    assert "uncited" in onboard.lower()
+
+
 @pytest.fixture
 def revise() -> str:
     return (COMMANDS / "revise.md").read_text()
@@ -82,6 +91,22 @@ def test_revise_links_each_edit_to_its_signal(revise):
     assert "signal_links" in revise
 
 
+def test_revise_diagnoses_via_the_weak_stage_cli(revise):
+    """I6: interfaces/performance.py's weak_stage is tested but was dead at
+    runtime -- revise.md restated the funnel table in prose with no
+    thresholds. It must now call the CLI the tests certify.
+    """
+    assert "interfaces.performance weak-stage" in revise
+    assert "--artifact" in revise
+
+
+def test_revise_obtains_run_id_from_the_episodic_cli(revise):
+    """C1: the agent must obtain a run id from tools/episodic.py rather than
+    inventing one, so a later find_latest_shipped lookup can match it.
+    """
+    assert "tools/episodic.py new-run-id" in revise
+
+
 @pytest.fixture
 def webcopy() -> str:
     return (COMMANDS / "webcopy.md").read_text()
@@ -92,6 +117,13 @@ def test_webcopy_delegates_to_the_agent_and_persists_the_decision(webcopy):
     assert "tools/approve.py" in webcopy
     for decision in ("approve", "edit", "reject"):
         assert decision in webcopy
+
+
+def test_webcopy_obtains_run_id_from_the_episodic_cli(webcopy):
+    """C1: the agent must obtain a run id from tools/episodic.py rather than
+    inventing one, so a later find_latest_shipped lookup can match it.
+    """
+    assert "tools/episodic.py new-run-id" in webcopy
 
 
 def test_client_command_switches_context():

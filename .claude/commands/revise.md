@@ -28,6 +28,22 @@ not a live page, and diagnosing performance data against it is meaningless.
 
 ## 3. Diagnose by funnel stage
 
+Run the diagnosis through the function the thresholds are tested against —
+do not eyeball the artifact's numbers against the table below:
+
+```bash
+python3 -m interfaces.performance weak-stage --artifact <path-to-performance-artifact>
+```
+
+This prints JSON mapping each page url to its weakest funnel stage (`top`,
+`mid`, `bottom`, or `null` if nothing is diagnosably weak), applying the
+`_CTR_FLOOR` / `_BOUNCE_CEILING` / `_ENGAGEMENT_FLOOR_S` / `_CONVERSION_FLOOR`
+thresholds. Exit 0 means the diagnosis ran; exit 2 means the artifact was
+malformed — surface stderr and stop.
+
+The table below explains what each stage *means*, once the command above has
+told you which one is weak:
+
 | Weak signal | Stage | Act on |
 |---|---|---|
 | Impressions healthy, CTR low | top | title, meta description, hook |
@@ -35,7 +51,8 @@ not a live page, and diagnosing performance data against it is meaningless.
 | Engagement healthy, conversion low | bottom | CTA, offer framing |
 
 The earliest weak stage wins: a page nobody clicks does not have a
-message-match problem worth solving yet.
+message-match problem worth solving yet. `weak-stage` already applies this
+ordering — trust its answer rather than re-deriving it from the raw signals.
 
 **If `sample_warning` is true in the artifact, say so before the diagnosis and
 present it as provisional.** Low volume is a caveat on the read, not grounds
@@ -46,9 +63,16 @@ for withholding it. Do not propose sweeping changes off a handful of sessions.
 Propose targeted edits to the stage's action surface. Leave the rest alone —
 a revision that rewrites a page wholesale cannot be attributed to a signal.
 
-Run the edits through the `gen-eval-loop` skill in revise mode. A revision can
-fail an invariant criterion exactly as a draft can, and is regenerated the same
-way.
+Obtain the run id before looping — never invent one, and use the **same**
+page slug ($2) that `find_latest_shipped` will look for next time:
+
+```bash
+python3 tools/episodic.py new-run-id --workflow webcopy --slug $2
+```
+
+Run the edits through the `gen-eval-loop` skill in revise mode, using the run
+id printed above. A revision can fail an invariant criterion exactly as a
+draft can, and is regenerated the same way.
 
 ## 5. Trace each edit to its signal
 
