@@ -47,10 +47,26 @@ class SpineError(Exception):
 
 # --- checks -----------------------------------------------------------------
 
+def _phrase_pattern(phrase: str) -> re.Pattern:
+    """Build a regex for a banned phrase.
+
+    Whitespace inside the phrase matches any run of whitespace in the text
+    (so a newline or double space between words still fires). Word-boundary
+    anchors are applied only where the phrase itself starts/ends on a word
+    character -- an unconditional \\b fails when the phrase's edge is
+    already a non-word character.
+    """
+    tokens = phrase.split()
+    body = r"\s+".join(re.escape(t) for t in tokens)
+    prefix = r"\b" if phrase[:1].isalnum() or phrase[:1] == "_" else ""
+    suffix = r"\b" if phrase[-1:].isalnum() or phrase[-1:] == "_" else ""
+    return re.compile(prefix + body + suffix, re.IGNORECASE)
+
+
 def banned_phrases(copy_text: str, config: dict) -> tuple[bool, str]:
     found = [
         p for p in config.get("phrases", [])
-        if re.search(rf"\b{re.escape(p)}\b", copy_text, re.IGNORECASE)
+        if _phrase_pattern(p).search(copy_text)
     ]
     if found:
         return False, f"banned phrases present: {', '.join(sorted(found))}"
@@ -169,6 +185,9 @@ def main(argv: list[str] | None = None) -> int:
         result = evaluate(args.copy.read_text(), rubric)
     except (SpineError, RubricError, UnknownCheckError) as exc:
         print(str(exc), file=sys.stderr)
+        return 2
+    except Exception as exc:
+        print(f"eval failed: {exc}", file=sys.stderr)
         return 2
 
     print(json.dumps(result, indent=2))

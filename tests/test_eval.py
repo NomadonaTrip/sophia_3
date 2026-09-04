@@ -48,6 +48,22 @@ def test_banned_phrases_matches_whole_words_only():
     assert passed is True
 
 
+def test_banned_phrases_matches_multiword_phrase_across_a_newline():
+    passed, detail = banned_phrases(
+        "We leverage\nsynergy for you.", {"phrases": ["leverage synergy"]}
+    )
+    assert passed is False
+    assert "leverage synergy" in detail
+
+
+def test_banned_phrases_matches_phrase_with_non_word_edge_character():
+    passed, detail = banned_phrases(
+        "Act now! this is the moment.", {"phrases": ["!"]}
+    )
+    assert passed is False
+    assert "!" in detail
+
+
 # --- length_bands ---
 
 def test_length_bands_passes_within_band():
@@ -246,3 +262,34 @@ def test_cli_exits_two_on_missing_copy_file(memory_root, tmp_path):
     proc = _run_cli(memory_root, tmp_path / "absent.md")
     assert proc.returncode == 2
     assert "copy not found" in proc.stderr
+
+
+def test_cli_exits_two_when_a_check_raises(tmp_path):
+    """A structurally-invalid check config (e.g. a scalar band instead of a
+    [min, max] pair) is a plausible YAML authoring typo. It must not escape
+    as an uncaught exception (exit 1) -- the spine-failure contract is
+    exit 2, stdout empty, reason on stderr.
+    """
+    evals = tmp_path / "clients" / "orban-forest" / "evals"
+    evals.mkdir(parents=True)
+    (evals / "webcopy.md").write_text(
+        "# Web Copy Rubric\n\n"
+        "## Invariant\n\n"
+        "```yaml\n"
+        "[]\n"
+        "```\n\n"
+        "## Tunable\n\n"
+        "```yaml\n"
+        "- id: bad-length-band\n"
+        "  type: deterministic\n"
+        "  check: length_bands\n"
+        "  config:\n"
+        "    h1: 5\n"
+        "```\n"
+    )
+    copy_path = tmp_path / "copy.md"
+    copy_path.write_text("<!-- section: h1 -->\nHello there.\n")
+    proc = _run_cli(tmp_path, copy_path)
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert proc.stderr.strip() != ""
