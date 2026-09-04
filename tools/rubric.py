@@ -15,9 +15,6 @@ import yaml
 
 VALID_TYPES = ("deterministic", "judgment")
 
-_SECTION_RE = r"^##\s+{name}\s*$.*?```yaml\s*$(?P<body>.*?)^```\s*$"
-
-
 class RubricError(Exception):
     """Raised for any malformed or missing rubric. Never recovered from."""
 
@@ -62,15 +59,43 @@ def load_rubric(path: Path) -> Rubric:
 
 
 def _section_entries(text: str, section: str, path: Path) -> list[dict]:
-    match = re.search(
-        _SECTION_RE.format(name=section), text, re.MULTILINE | re.DOTALL
-    )
-    if match is None:
+    """Extract YAML entries from a section, bounded by section headings.
+
+    The section body extends from the section heading to the next ## heading (or EOF).
+    This prevents regex from crossing section boundaries and leaking criteria.
+    """
+    # Find the section heading
+    section_pattern = r"^##\s+" + re.escape(section) + r"\s*$"
+    section_match = re.search(section_pattern, text, re.MULTILINE)
+    if section_match is None:
         raise RubricError(
             f"{path}: missing '## {section}' section with a fenced yaml block"
         )
+
+    # Section body: from end of heading to the next ## heading (or EOF)
+    body_start = section_match.end()
+    next_section_match = re.search(r"^##\s+", text[body_start:], re.MULTILINE)
+    if next_section_match:
+        body_end = body_start + next_section_match.start()
+    else:
+        body_end = len(text)
+
+    section_body = text[body_start:body_end]
+
+    # Look for all YAML fences within this section body
+    yaml_matches = list(re.finditer(r"```yaml\s*$(?P<body>.*?)^```\s*$", section_body, re.MULTILINE | re.DOTALL))
+    if len(yaml_matches) == 0:
+        raise RubricError(
+            f"{path}: missing '## {section}' section with a fenced yaml block"
+        )
+    if len(yaml_matches) > 1:
+        raise RubricError(
+            f"{path}: '## {section}' contains multiple fenced yaml blocks; expected exactly one"
+        )
+
+    yaml_match = yaml_matches[0]
     try:
-        parsed = yaml.safe_load(match.group("body"))
+        parsed = yaml.safe_load(yaml_match.group("body"))
     except yaml.YAMLError as exc:
         raise RubricError(f"{path}: malformed YAML in '{section}': {exc}") from exc
     if parsed is None:

@@ -111,3 +111,44 @@ def test_malformed_yaml_is_an_error(tmp_path):
     )
     with pytest.raises(RubricError, match="YAML"):
         load_rubric(path)
+
+
+def test_empty_invariant_followed_by_populated_tunable(tmp_path):
+    """Section extraction must not leak: empty Invariant followed by real Tunable."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n[]\n```\n\n"
+        "## Tunable\n\n```yaml\n- id: a\n  type: judgment\n  criterion: x\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "a"
+    assert rubric.criteria[0].invariant is False
+    assert len(rubric.deterministic()) == 0
+    assert len(rubric.judgment()) == 1
+
+
+def test_multiple_yaml_blocks_in_section_is_an_error(tmp_path):
+    """A section with multiple YAML fences is ambiguous and rejected."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n- id: wrong\n  type: judgment\n  criterion: x\n```\n\n"
+        "```yaml\n- id: correct\n  type: judgment\n  criterion: y\n```\n\n"
+        "## Tunable\n\n```yaml\n[]\n```\n"
+    )
+    with pytest.raises(RubricError, match="fenced yaml block"):
+        load_rubric(path)
+
+
+def test_section_heading_inside_yaml_content_does_not_truncate(tmp_path):
+    """A ## inside YAML content (not at line start) should not truncate the section."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n- id: a\n  type: judgment\n  criterion: 'This mentions ## headers in prose'\n```\n\n"
+        "## Tunable\n\n```yaml\n[]\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "a"
+    assert rubric.criteria[0].invariant is True
+    assert "##" in rubric.criteria[0].criterion
