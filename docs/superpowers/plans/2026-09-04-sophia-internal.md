@@ -188,6 +188,8 @@ import pytest
 
 from interfaces.retrieval import SCOPES, GrepRetriever, Hit
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
 
 @pytest.fixture
 def memory_root(tmp_path: Path) -> Path:
@@ -275,7 +277,7 @@ def test_module_cli_emits_json(memory_root):
             "--client", "orban-forest",
             "--query", "leverage",
         ],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, cwd=REPO_ROOT,
     )
     payload = json.loads(proc.stdout)
     assert len(payload) == 2
@@ -3776,10 +3778,10 @@ Ask the operator for existing copy — a current site, past pages, brochures,
 anything the client actually wrote or approved. Two or three samples is a
 working minimum.
 
-**If the operator has no seed material, refuse and stop.** Voice cannot be
-bootstrapped from nothing; a profile invented from a description of a business
-will read plausibly and be wrong, and every page generated afterward inherits
-the error. Say so plainly and offer to resume when samples exist.
+**If the operator has no seed material, refuse and stop.** You cannot bootstrap
+voice from nothing; a profile invented from a description of a business will
+read plausibly and be wrong, and every page generated afterward inherits the
+error. Say so plainly and offer to resume when samples exist.
 
 Do not substitute samples from another client, another project, or the web.
 
