@@ -22,7 +22,7 @@
 - **`memory/` is git-tracked; `.env` is git-ignored and never logged** (H-NFR4, H-NFR6).
 - **`schema_version` is the string `"1"`** in both the performance artifact and the trace.
 - **Timestamps are UTC ISO-8601 with `Z` suffix**, e.g. `2026-09-04T00:00:00Z`.
-- Test command throughout: `python -m pytest`. Run from repo root.
+- Test command throughout: `python3 -m pytest`. Run from repo root.
 
 ---
 
@@ -65,7 +65,7 @@
 
 **Interfaces:**
 - Consumes: nothing
-- Produces: importable `interfaces` and `tools` packages; `python -m pytest` runs from repo root
+- Produces: importable `interfaces` and `tools` packages; `python3 -m pytest` runs from repo root
 
 - [ ] **Step 1: Write the failing test**
 
@@ -102,7 +102,7 @@ def test_env_example_exists_and_env_is_ignored():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_packaging.py -v`
+Run: `python3 -m pytest tests/test_packaging.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'interfaces'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -145,8 +145,8 @@ Create `.env.example`:
 
 Run:
 ```bash
-python -m pip install --quiet PyYAML pytest
-python -m pytest tests/test_packaging.py -v
+python3 -m pip install --quiet PyYAML pytest
+python3 -m pytest tests/test_packaging.py -v
 ```
 Expected: 4 passed
 
@@ -172,7 +172,7 @@ git commit -m "feat: project skeleton with PyYAML dependency and pytest config"
   - `SCOPES: tuple[str, ...]` = `("voice", "business", "icp", "evals", "episodic", "performance")`
   - `Retriever` — Protocol with `search(self, query: str, *, client: str, scope: str | None = None, limit: int = 20) -> list[Hit]`
   - `GrepRetriever(memory_root: Path)` — implements `Retriever`
-  - CLI: `python -m interfaces.retrieval --client C --query Q [--scope S] [--limit N]` → JSON list of hit objects
+  - CLI: `python3 -m interfaces.retrieval --client C --query Q [--scope S] [--limit N]` → JSON list of hit objects
 
 - [ ] **Step 1: Write the failing test**
 
@@ -187,6 +187,8 @@ from pathlib import Path
 import pytest
 
 from interfaces.retrieval import SCOPES, GrepRetriever, Hit
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 @pytest.fixture
@@ -275,7 +277,7 @@ def test_module_cli_emits_json(memory_root):
             "--client", "orban-forest",
             "--query", "leverage",
         ],
-        capture_output=True, text=True, check=True,
+        capture_output=True, text=True, check=True, cwd=REPO_ROOT,
     )
     payload = json.loads(proc.stdout)
     assert len(payload) == 2
@@ -284,7 +286,7 @@ def test_module_cli_emits_json(memory_root):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_retrieval.py -v`
+Run: `python3 -m pytest tests/test_retrieval.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'interfaces.retrieval'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -433,7 +435,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_retrieval.py -v`
+Run: `python3 -m pytest tests/test_retrieval.py -v`
 Expected: 11 passed
 
 - [ ] **Step 5: Commit**
@@ -613,7 +615,7 @@ def test_malformed_yaml_is_an_error(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_rubric.py -v`
+Run: `python3 -m pytest tests/test_rubric.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.rubric'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -734,7 +736,7 @@ def _build(entry: object, *, invariant: bool, section: str, path: Path) -> Crite
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_rubric.py -v`
+Run: `python3 -m pytest tests/test_rubric.py -v`
 Expected: 14 passed
 
 - [ ] **Step 5: Commit**
@@ -759,7 +761,7 @@ git commit -m "feat: rubric parsing with structural invariance"
   - `banned_phrases`, `length_bands`, `passive_rate`, `fabricated_stat_scan` — the four check functions
   - `evaluate(copy_text: str, rubric: Rubric) -> dict` — returns `{"criteria": [...], "invariant_failed": bool}`
   - `UnknownCheckError(Exception)`
-  - CLI: `python tools/eval.py --client C --workflow W --copy PATH [--memory-root P]` → JSON to stdout, exit 0 on success (regardless of pass/fail), exit 2 on spine failure
+  - CLI: `python3 tools/eval.py --client C --workflow W --copy PATH [--memory-root P]` → JSON to stdout, exit 0 on success (regardless of pass/fail), exit 2 on spine failure
 
 **Length-band semantics:** `length_bands` config maps a section name to `[min_words, max_words]`. Sections in the copy are located by markdown heading comment markers of the form `<!-- section: h1 -->` on the line before the content. A section named in config but absent from the copy is a failure; a section present in the copy but not named in config is ignored.
 
@@ -1020,7 +1022,7 @@ def test_cli_exits_two_on_missing_copy_file(memory_root, tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_eval.py -v`
+Run: `python3 -m pytest tests/test_eval.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.eval'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1216,7 +1218,7 @@ placed immediately after the docstring and before the `from tools.rubric` import
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_eval.py -v`
+Run: `python3 -m pytest tests/test_eval.py -v`
 Expected: 27 passed
 
 - [ ] **Step 5: Commit**
@@ -1305,7 +1307,7 @@ def test_find_latest_shipped_picks_most_recent_matching_slug(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_episodic.py -v`
+Run: `python3 -m pytest tests/test_episodic.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.episodic'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1363,7 +1365,7 @@ def find_latest_shipped(memory_root: Path, client: str, slug: str) -> Path | Non
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_episodic.py -v`
+Run: `python3 -m pytest tests/test_episodic.py -v`
 Expected: 8 passed
 
 - [ ] **Step 5: Commit**
@@ -1388,7 +1390,7 @@ git commit -m "feat: episodic run directory naming and lookup"
   - `validate_trace(payload: dict) -> None` — raises `TraceError` on any violation
   - `write_trace(memory_root: Path, client: str, run_id: str, payload: dict) -> Path`
   - `TraceError(Exception)`
-  - CLI: `python tools/trace.py write --client C --run-id ID --payload PATH|-` → JSON `{"written": "<path>"}`, exit 2 on invalid payload
+  - CLI: `python3 tools/trace.py write --client C --run-id ID --payload PATH|-` → JSON `{"written": "<path>"}`, exit 2 on invalid payload
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1561,7 +1563,7 @@ def test_cli_exits_two_on_invalid_payload(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_trace.py -v`
+Run: `python3 -m pytest tests/test_trace.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.trace'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1717,7 +1719,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_trace.py -v`
+Run: `python3 -m pytest tests/test_trace.py -v`
 Expected: 17 passed
 
 - [ ] **Step 5: Commit**
@@ -1964,7 +1966,7 @@ def test_write_artifact_rejects_invalid_without_writing(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_performance.py -v`
+Run: `python3 -m pytest tests/test_performance.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'interfaces.performance'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2145,7 +2147,7 @@ def write_artifact(memory_root: Path, artifact: dict) -> Path:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_performance.py -v`
+Run: `python3 -m pytest tests/test_performance.py -v`
 Expected: 22 passed
 
 - [ ] **Step 5: Commit**
@@ -2383,7 +2385,7 @@ def test_cli_exits_two_on_malformed_period(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_ingest.py -v`
+Run: `python3 -m pytest tests/test_ingest.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.ingest_common'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2612,7 +2614,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_ingest.py -v`
+Run: `python3 -m pytest tests/test_ingest.py -v`
 Expected: 19 passed
 
 - [ ] **Step 5: Commit**
@@ -2638,7 +2640,7 @@ git commit -m "feat: GSC and GA4 ingestion into the normalized artifact"
   - `edit_magnitude(draft: str, final: str) -> int` — changed lines via `difflib`
   - `record_decision(memory_root, client, run_id, decision, *, copy_path=None, note=None, now=None) -> dict`
   - `ApprovalError(Exception)`
-  - CLI: `python tools/approve.py --client C --run-id ID --decision D [--copy PATH] [--note TEXT]` → JSON of the decision record, exit 2 on failure
+  - CLI: `python3 tools/approve.py --client C --run-id ID --decision D [--copy PATH] [--note TEXT]` → JSON of the decision record, exit 2 on failure
 
 **Semantics.** `approve` and `edit` both require `--copy` and both write `shipped.md` (H-FR9) — an edited draft is still shipped copy. `reject` must not supply `--copy` and writes no `shipped.md`. `edit_magnitude` is computed against `draft.md` in the run directory, which the loop writes before handing copy to the operator; it is `null` for `approve` and `reject`.
 
@@ -2796,7 +2798,7 @@ def test_cli_exits_two_on_bad_input(staged):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_approve.py -v`
+Run: `python3 -m pytest tests/test_approve.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'tools.approve'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -2923,7 +2925,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_approve.py -v`
+Run: `python3 -m pytest tests/test_approve.py -v`
 Expected: 14 passed
 
 - [ ] **Step 5: Commit**
@@ -2952,7 +2954,7 @@ git commit -m "feat: approval, shipped-copy persistence and edit magnitude"
   - `parse_agent(path: Path) -> WorkflowSpec`
   - `load_workflows(agents_dir: Path) -> list[WorkflowSpec]` — skips files whose name starts with `_`
   - `DelegationError(Exception)`
-  - CLI: `python -m interfaces.delegation --validate [--agents-dir P]` → JSON list of specs, exit 2 on any malformed agent file
+  - CLI: `python3 -m interfaces.delegation --validate [--agents-dir P]` → JSON list of specs, exit 2 on any malformed agent file
 
 **Frontmatter contract.** YAML between `---` fences at the top of the file. `tools` and `modes` are YAML lists. `rubric_path` is a path relative to `memory/clients/<client>/`, e.g. `evals/webcopy.md`.
 
@@ -3093,7 +3095,7 @@ def test_cli_validate_exits_two_on_a_malformed_agent(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_delegation.py -v`
+Run: `python3 -m pytest tests/test_delegation.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'interfaces.delegation'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -3116,7 +3118,7 @@ rubric_path: evals/<workflow-name>.md
 
 ## Memory to load
 
-Load, via `python -m interfaces.retrieval`:
+Load, via `python3 -m interfaces.retrieval`:
 
 - `voice.md` — how this client sounds
 - `business.md` — what they do and what they sell
@@ -3162,7 +3164,7 @@ has copy in front of them — or a named sticking point explaining why they do n
 
 ## Memory to load
 
-Load, via `python -m interfaces.retrieval`:
+Load, via `python3 -m interfaces.retrieval`:
 
 - `voice.md` — how this client sounds
 - `business.md` — what they do and what they sell
@@ -3305,7 +3307,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_delegation.py -v`
+Run: `python3 -m pytest tests/test_delegation.py -v`
 Expected: 20 passed
 
 - [ ] **Step 5: Commit**
@@ -3409,7 +3411,7 @@ def test_research_first_forbids_inventing_missing_inputs():
 
 def test_research_first_cites_the_real_retrieval_cli():
     text = (SKILLS / "research-first" / "SKILL.md").read_text()
-    assert "python -m interfaces.retrieval" in text
+    assert "python3 -m interfaces.retrieval" in text
     assert "--client" in text
 
 
@@ -3421,7 +3423,7 @@ def test_voice_match_requires_observable_markers_not_adjectives():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_skills.py -v`
+Run: `python3 -m pytest tests/test_skills.py -v`
 Expected: FAIL — `AssertionError` on the missing `SKILL.md` files
 
 - [ ] **Step 3: Write minimal implementation**
@@ -3451,10 +3453,10 @@ token, not as a check afterward.
 ## How to check
 
 ```bash
-python -m interfaces.retrieval --client <client> --query "<term>" --scope voice
-python -m interfaces.retrieval --client <client> --query "<term>" --scope business
-python -m interfaces.retrieval --client <client> --query "<term>" --scope icp
-python -m interfaces.retrieval --client <client> --query "<term>" --scope evals
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope voice
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope business
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope icp
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope evals
 ```
 
 Retrieval returns `[]` for anything absent and never raises. Absence is not an
@@ -3549,7 +3551,7 @@ against this file, so it must be the copy you actually hand over.
 ## Step 2 — Deterministic check
 
 ```bash
-python tools/eval.py --client <client> --workflow <workflow> --copy <path-to-draft>
+python3 tools/eval.py --client <client> --workflow <workflow> --copy <path-to-draft>
 ```
 
 Exit 0 means the evaluation ran, whether or not the copy passed. **Exit code 2
@@ -3592,7 +3594,7 @@ Write the trace before the turn ends — on a pass, on an escalation, and on a
 spine failure that stopped the run:
 
 ```bash
-python tools/trace.py write --client <client> --run-id <run-id> --payload -
+python3 tools/trace.py write --client <client> --run-id <run-id> --payload -
 ```
 
 The payload is the trace schema: `schema_version` `"1"`, the run identifiers,
@@ -3608,7 +3610,7 @@ no example of an opening for a services page" is.
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_skills.py -v`
+Run: `python3 -m pytest tests/test_skills.py -v`
 Expected: 13 passed
 
 - [ ] **Step 5: Commit**
@@ -3752,7 +3754,7 @@ def test_routing_doc_states_the_delegation_boundary():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_commands.py -v`
+Run: `python3 -m pytest tests/test_commands.py -v`
 Expected: FAIL — `AssertionError` on the missing command files
 
 - [ ] **Step 3: Write minimal implementation**
@@ -3776,10 +3778,10 @@ Ask the operator for existing copy — a current site, past pages, brochures,
 anything the client actually wrote or approved. Two or three samples is a
 working minimum.
 
-**If the operator has no seed material, refuse and stop.** Voice cannot be
-bootstrapped from nothing; a profile invented from a description of a business
-will read plausibly and be wrong, and every page generated afterward inherits
-the error. Say so plainly and offer to resume when samples exist.
+**If the operator has no seed material, refuse and stop.** You cannot bootstrap
+voice from nothing; a profile invented from a description of a business will
+read plausibly and be wrong, and every page generated afterward inherits the
+error. Say so plainly and offer to resume when samples exist.
 
 Do not substitute samples from another client, another project, or the web.
 
@@ -3845,8 +3847,8 @@ Show the operator the rubric before writing it. It is their control surface.
 ## Verify
 
 ```bash
-python -m interfaces.retrieval --client $1 --query "" --scope voice
-python tools/eval.py --client $1 --workflow webcopy --copy <one-of-the-samples>
+python3 -m interfaces.retrieval --client $1 --query "" --scope voice
+python3 tools/eval.py --client $1 --workflow webcopy --copy <one-of-the-samples>
 ```
 
 The samples should mostly pass their own rubric. If a sample fails an invariant
@@ -3889,13 +3891,13 @@ Ask for one of: **approve**, **edit**, or **reject**.
 Then persist it:
 
 ```bash
-python tools/approve.py --client $1 --run-id <run-id> \
+python3 tools/approve.py --client $1 --run-id <run-id> \
     --decision approve --copy <path-to-final>
 
-python tools/approve.py --client $1 --run-id <run-id> \
+python3 tools/approve.py --client $1 --run-id <run-id> \
     --decision edit --copy <path-to-operator-version> --note "<what changed and why>"
 
-python tools/approve.py --client $1 --run-id <run-id> \
+python3 tools/approve.py --client $1 --run-id <run-id> \
     --decision reject --note "<why>"
 ```
 
@@ -3919,8 +3921,8 @@ argument-hint: <client-name> <page-slug>
 CSV is the source of truth:
 
 ```bash
-python tools/ingest_gsc.py --client $1 --csv <path> --period 2026-08-01:2026-08-31
-python tools/ingest_ga4.py --client $1 --csv <path> --period 2026-08-01:2026-08-31
+python3 tools/ingest_gsc.py --client $1 --csv <path> --period 2026-08-01:2026-08-31
+python3 tools/ingest_ga4.py --client $1 --csv <path> --period 2026-08-01:2026-08-31
 ```
 
 If the operator has only a screenshot, read the image, write the rows out as a
@@ -3985,9 +3987,9 @@ argument-hint: <client-name>
 Load and summarise the client's profile so the rest of the session has it:
 
 ```bash
-python -m interfaces.retrieval --client $1 --query "" --scope voice
-python -m interfaces.retrieval --client $1 --query "" --scope business
-python -m interfaces.retrieval --client $1 --query "" --scope icp
+python3 -m interfaces.retrieval --client $1 --query "" --scope voice
+python3 -m interfaces.retrieval --client $1 --query "" --scope business
+python3 -m interfaces.retrieval --client $1 --query "" --scope icp
 ```
 
 Read `memory/clients/$1/voice.md`, `business.md`, `icp.md`, and
@@ -4031,7 +4033,7 @@ itself, and it is not a router.
 |---|---|---|
 | webcopy | `.claude/agents/webcopy.md` | `evals/webcopy.md` |
 
-`python -m interfaces.delegation --validate` lists them and checks each agent
+`python3 -m interfaces.delegation --validate` lists them and checks each agent
 file against `.claude/agents/_TEMPLATE.md`.
 
 ## Invariants
@@ -4057,13 +4059,13 @@ Exit code 2 from any tool means the spine failed: surface stderr and stop.
 Never work around a spine failure by doing its job by eye.
 
 ```
-python -m interfaces.retrieval --client C --query Q [--scope S]
-python -m interfaces.delegation --validate
-python tools/eval.py     --client C --workflow W --copy PATH
-python tools/trace.py    write --client C --run-id ID --payload PATH|-
-python tools/ingest_gsc.py --client C --csv PATH [--period S:E] [--source screenshot]
-python tools/ingest_ga4.py --client C --csv PATH [--period S:E] [--source screenshot]
-python tools/approve.py  --client C --run-id ID --decision approve|edit|reject
+python3 -m interfaces.retrieval --client C --query Q [--scope S]
+python3 -m interfaces.delegation --validate
+python3 tools/eval.py     --client C --workflow W --copy PATH
+python3 tools/trace.py    write --client C --run-id ID --payload PATH|-
+python3 tools/ingest_gsc.py --client C --csv PATH [--period S:E] [--source screenshot]
+python3 tools/ingest_ga4.py --client C --csv PATH [--period S:E] [--source screenshot]
+python3 tools/approve.py  --client C --run-id ID --decision approve|edit|reject
 ```
 
 ## Memory
@@ -4074,13 +4076,13 @@ Client data does not leave this machine.
 
 ## Tests
 
-`python -m pytest` from the repo root. The spine is tested; the loop is
+`python3 -m pytest` from the repo root. The spine is tested; the loop is
 validated by `docs/acceptance.md`.
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python -m pytest tests/test_commands.py -v`
+Run: `python3 -m pytest tests/test_commands.py -v`
 Expected: 18 passed
 
 - [ ] **Step 5: Commit**
@@ -4246,7 +4248,7 @@ def test_spine_failure_is_distinguishable_from_a_failing_evaluation(tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python -m pytest tests/test_end_to_end.py -v`
+Run: `python3 -m pytest tests/test_end_to_end.py -v`
 Expected: FAIL — the fixtures compose but `docs/acceptance.md` and `memory/` do not exist yet; if the tests pass at this point, they are still the deliverable, so proceed to step 3.
 
 - [ ] **Step 3: Write the acceptance log and memory root**
@@ -4258,7 +4260,7 @@ Create `docs/acceptance.md`:
 ```markdown
 # Acceptance Log
 
-The §9 validation gate from `prd.md`. The spine is covered by `python -m pytest`;
+The §9 validation gate from `prd.md`. The spine is covered by `python3 -m pytest`;
 this file is where the prompt-driven loop is validated, because it cannot be.
 
 Fill a row when you have evidence, and link the run directory that shows it.
@@ -4306,7 +4308,7 @@ Read the series with:
 
 ```bash
 find memory/clients/<client>/episodic -name decision.json \
-  | sort | xargs -I{} sh -c 'python -c "
+  | sort | xargs -I{} sh -c 'python3 -c "
 import json,sys; d=json.load(open(sys.argv[1]));
 print(d[\"run_id\"], d[\"decision\"], d[\"edit_magnitude\"])" {}'
 ```
@@ -4321,11 +4323,11 @@ workflow #2 can build on it. Until then, no workflow #2.
 
 - [ ] **Step 4: Run the whole suite**
 
-Run: `python -m pytest -v`
+Run: `python3 -m pytest -v`
 Expected: all tests pass across every test file. Also confirm the seam validator runs clean:
 
 ```bash
-python -m interfaces.delegation --validate
+python3 -m interfaces.delegation --validate
 ```
 Expected: JSON listing the `webcopy` workflow, exit 0.
 
@@ -4348,8 +4350,8 @@ This task is **operator-driven and cannot be completed by an agent working alone
 - [ ] **Step 1: Confirm the system is ready**
 
 ```bash
-python -m pytest
-python -m interfaces.delegation --validate
+python3 -m pytest
+python3 -m interfaces.delegation --validate
 ```
 Both must be clean before onboarding a real client.
 
@@ -4364,7 +4366,7 @@ they wrote or approved. The command refuses to proceed without it by design.
 - [ ] **Step 4: Verify the seeded rubric accepts the client's own copy**
 
 ```bash
-python tools/eval.py --client orban-forest --workflow webcopy --copy <a-sample>
+python3 tools/eval.py --client orban-forest --workflow webcopy --copy <a-sample>
 ```
 A sample that fails an invariant criterion means the rubric is wrong, not the
 sample. Fix it with the operator.

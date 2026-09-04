@@ -68,7 +68,7 @@ Per H-FR6, `search` returns `[]` when nothing matches and never raises on an abs
 Also runnable as a module so agents can reach it through Bash:
 
 ```
-python -m interfaces.retrieval --client C --query "..." [--scope voice] [--limit N]
+python3 -m interfaces.retrieval --client C --query "..." [--scope voice] [--limit N]
 ```
 
 ### 3.2 Performance artifact — `interfaces/performance.py`
@@ -108,7 +108,7 @@ Adding a workflow fills the same slots. Only Role, the tool allowlist, and the r
 
 Per §5 ("a dark component is an interface plus a trivial backing, never empty scaffolding"), this is not a stub. It parses `.claude/agents/*.md` frontmatter into `WorkflowSpec` records (`name`, `agent_file`, `rubric_path`, `modes`, `tools`) and validates each against `_TEMPLATE.md`'s required sections.
 
-That enumeration is exactly the call a future router makes. Today it earns its place via `python -m interfaces.delegation --validate`, which catches a malformed agent file before a run does.
+That enumeration is exactly the call a future router makes. Today it earns its place via `python3 -m interfaces.delegation --validate`, which catches a malformed agent file before a run does.
 
 ---
 
