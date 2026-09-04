@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+import pytest
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from tools.episodic import find_latest_shipped, new_run_id, run_dir, slugify
@@ -52,3 +53,39 @@ def test_find_latest_shipped_picks_most_recent_matching_slug(tmp_path):
     found = find_latest_shipped(tmp_path, "orban-forest", "home")
     assert found is not None
     assert found.read_text() == "20260903T000000Z-webcopy-home"
+
+
+def test_find_latest_shipped_distinguishes_suffix_collision(tmp_path):
+    """Test that 'home' lookup doesn't match 'new-home' run."""
+    for run_id in (
+        "20260901T000000Z-webcopy-new-home",
+        "20260902T000000Z-webcopy-home",
+    ):
+        d = run_dir(tmp_path, "orban-forest", run_id, create=True)
+        (d / "shipped.md").write_text(f"CONTENT-{run_id}")
+    found = find_latest_shipped(tmp_path, "orban-forest", "home")
+    assert found is not None
+    assert found.read_text() == "CONTENT-20260902T000000Z-webcopy-home"
+
+
+def test_new_run_id_rejects_empty_slug():
+    """Test that new_run_id raises ValueError for punctuation-only slug."""
+    with pytest.raises(ValueError, match="slug reduces to empty"):
+        new_run_id("webcopy", "///")
+
+
+def test_new_run_id_rejects_naive_datetime():
+    """Test that new_run_id raises ValueError for naive datetime."""
+    naive = datetime(2026, 9, 4, 13, 5, 0)  # no tzinfo
+    with pytest.raises(ValueError, match="must be timezone-aware"):
+        new_run_id("webcopy", "home", now=naive)
+
+
+def test_new_run_id_converts_non_utc_aware_datetime():
+    """Test that new_run_id converts aware non-UTC datetime to UTC."""
+    # Use +05:00 offset where the UTC date will differ from local date
+    eastern = timezone(timedelta(hours=5))
+    local_time = datetime(2026, 9, 4, 13, 5, 0, tzinfo=eastern)  # 2026-09-04 13:05 +05:00
+    # In UTC this is 2026-09-04 08:05:00Z
+    result = new_run_id("webcopy", "home", now=local_time)
+    assert result == "20260904T080500Z-webcopy-home"

@@ -19,8 +19,21 @@ def slugify(text: str) -> str:
 
 
 def new_run_id(workflow: str, slug: str, *, now: datetime | None = None) -> str:
-    stamp = (now or datetime.now(timezone.utc)).strftime(_TS_FORMAT)
-    return f"{stamp}-{workflow}-{slugify(slug)}"
+    slugified = slugify(slug)
+    if not slugified:
+        raise ValueError(f"slug reduces to empty after slugification: {slug!r}")
+
+    if now is None:
+        tz_aware = datetime.now(timezone.utc)
+    else:
+        # Check if datetime is naive
+        if now.tzinfo is None or now.utcoffset() is None:
+            raise ValueError(f"now must be timezone-aware, got naive datetime: {now!r}")
+        # Convert to UTC if not already
+        tz_aware = now.astimezone(timezone.utc)
+
+    stamp = tz_aware.strftime(_TS_FORMAT)
+    return f"{stamp}-{workflow}-{slugified}"
 
 
 def run_dir(
@@ -41,6 +54,14 @@ def find_latest_shipped(memory_root: Path, client: str, slug: str) -> Path | Non
     candidates = [
         d / "shipped.md"
         for d in sorted(episodic.iterdir(), reverse=True)
-        if d.is_dir() and d.name.endswith(f"-{target}") and (d / "shipped.md").is_file()
+        if d.is_dir()
+        and (d / "shipped.md").is_file()
+        and _get_run_id_slug(d.name) == target
     ]
     return candidates[0] if candidates else None
+
+
+def _get_run_id_slug(run_id: str) -> str:
+    """Extract slug component from run_id (format: timestamp-workflow-slug)."""
+    parts = run_id.split("-", 2)
+    return parts[2] if len(parts) == 3 else ""
