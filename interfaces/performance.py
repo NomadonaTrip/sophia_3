@@ -5,10 +5,15 @@ mode's diagnosis is a lookup rather than a fresh judgment each time.
 
 Absent metrics are None, never 0: a page with no conversion tracking must not
 read as a page with zero conversions.
+
+Exit codes (CLI): 0 = the artifact was read and diagnosed; 2 = the artifact
+was malformed or unreadable, with stdout empty and the reason on stderr.
 """
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -182,3 +187,35 @@ def write_artifact(memory_root: Path, artifact: dict) -> Path:
     target = directory / f"{stamp}-{artifact['source']}.json"
     target.write_text(json.dumps(artifact, indent=2) + "\n")
     return target
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Diagnose a performance artifact by funnel stage."
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+    weak = sub.add_parser(
+        "weak-stage",
+        help="Print each page's weakest funnel stage (or null), as JSON.",
+    )
+    weak.add_argument("--artifact", required=True, type=Path)
+    args = parser.parse_args(argv)
+
+    try:
+        payload = json.loads(args.artifact.read_text())
+        validate_artifact(payload)
+        result = {page["url"]: weak_stage(page) for page in payload["pages"]}
+        output = json.dumps(result, indent=2)
+    except (ArtifactError, OSError, json.JSONDecodeError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    except Exception as exc:
+        print(f"performance failed: {exc}", file=sys.stderr)
+        return 2
+
+    print(output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,8 @@ from interfaces.performance import (
     weak_stage,
     write_artifact,
 )
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 PERIOD = {"start": "2026-08-01", "end": "2026-08-31"}
 
@@ -233,3 +237,56 @@ def test_write_artifact_rejects_invalid_without_writing(tmp_path):
     with pytest.raises(ArtifactError):
         write_artifact(tmp_path, artifact)
     assert not (tmp_path / "clients").exists()
+
+
+# --- CLI (I6: weak_stage must be reachable from the prompt layer) ---
+
+def test_cli_weak_stage_maps_each_page_url_to_its_stage(tmp_path):
+    artifact = build_artifact(
+        "orban-forest", "gsc", PERIOD,
+        [
+            page("/top-weak", top={"impressions": 5000, "ctr": 0.008}),
+            page("/healthy",
+                 top={"impressions": 5000, "ctr": 0.05},
+                 mid={"bounce_rate": 0.3, "avg_engagement_s": 90},
+                 bottom={"conversion_rate": 0.04}),
+        ],
+    )
+    artifact_path = tmp_path / "artifact.json"
+    artifact_path.write_text(json.dumps(artifact))
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "interfaces.performance", "weak-stage",
+         "--artifact", str(artifact_path)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 0, proc.stderr
+    result = json.loads(proc.stdout)
+    assert result == {"/top-weak": "top", "/healthy": None}
+
+
+def test_cli_weak_stage_exits_two_on_malformed_artifact(tmp_path):
+    artifact_path = tmp_path / "artifact.json"
+    artifact_path.write_text(json.dumps({"not": "an artifact"}))
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "interfaces.performance", "weak-stage",
+         "--artifact", str(artifact_path)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
+    assert proc.stderr.strip()
+
+
+def test_cli_weak_stage_exits_two_on_invalid_json(tmp_path):
+    artifact_path = tmp_path / "artifact.json"
+    artifact_path.write_text("not json at all")
+
+    proc = subprocess.run(
+        [sys.executable, "-m", "interfaces.performance", "weak-stage",
+         "--artifact", str(artifact_path)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert proc.returncode == 2
+    assert proc.stdout == ""
