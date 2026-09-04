@@ -20,10 +20,10 @@ token, not as a check afterward.
 ## How to check
 
 ```bash
-python -m interfaces.retrieval --client <client> --query "<term>" --scope voice
-python -m interfaces.retrieval --client <client> --query "<term>" --scope business
-python -m interfaces.retrieval --client <client> --query "<term>" --scope icp
-python -m interfaces.retrieval --client <client> --query "<term>" --scope evals
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope voice
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope business
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope icp
+python3 -m interfaces.retrieval --client <client> --query "<term>" --scope evals
 ```
 
 Retrieval returns `[]` for anything absent and never raises. Absence is not an

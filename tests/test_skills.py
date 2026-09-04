@@ -71,7 +71,7 @@ def test_research_first_forbids_inventing_missing_inputs():
 
 def test_research_first_cites_the_real_retrieval_cli():
     text = (SKILLS / "research-first" / "SKILL.md").read_text()
-    assert "python -m interfaces.retrieval" in text
+    assert "-m interfaces.retrieval" in text
     assert "--client" in text
 
 
@@ -79,3 +79,31 @@ def test_voice_match_requires_observable_markers_not_adjectives():
     text = (SKILLS / "voice-match" / "SKILL.md").read_text().lower()
     assert "adjective" in text
     assert "marker" in text
+
+
+def test_loop_names_every_trace_payload_field(loop_text):
+    """The trace payload description must not drift from tools/trace.py's
+    own validator -- an incomplete field list means every run's trace write
+    fails at exit 2, quietly defeating the "trace, always" invariant.
+    Derived from the module's own constants, not a hardcoded second copy.
+    """
+    from tools import trace as trace_module
+
+    for field in trace_module._REQUIRED:
+        assert field in loop_text, field
+    for value in trace_module._MODES:
+        assert value in loop_text, value
+    for value in trace_module._OUTCOMES:
+        assert value in loop_text, value
+    for value in trace_module._DECISIONS:
+        assert value in loop_text, value
+    for value in trace_module._VERDICTS:
+        assert value in loop_text, value
+    # Iteration- and criterion-level keys are enforced by
+    # _validate_iteration but not exposed as module-level constants.
+    for field in ("n", "criteria", "deterministic", "decision", "reason"):
+        assert field in loop_text, field
+    for field in ("id", "verdict", "confidence", "rationale"):
+        assert field in loop_text, field
+    for field in ("edit", "signal"):
+        assert field in loop_text, field

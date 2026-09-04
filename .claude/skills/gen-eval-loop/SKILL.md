@@ -71,10 +71,21 @@ spine failure that stopped the run:
 python3 tools/trace.py write --client <client> --run-id <run-id> --payload -
 ```
 
-The payload is the trace schema: `schema_version` `"1"`, the run identifiers,
-one entry in `iterations` per iteration actually run (each with its criteria,
-the deterministic output, alternatives considered, the decision and the reason),
-`outcome`, `iteration_count`, and `escalation.sticking_point` when escalated.
+The payload must carry every field `tools/trace.py` requires:
+
+- `schema_version` — `"1"`
+- `run_id`, `client`, `workflow` — the run identifiers
+- `mode` — `generate` or `revise`
+- `started_at`
+- `iterations` — one entry per iteration actually run, each with `n`, its
+  `criteria` (each entry carrying `id`, `verdict` of `pass` or `fail`, a
+  `confidence` between 0 and 1, and a `rationale`), the `deterministic`
+  output, alternatives considered, the `decision` (`regenerate`, `pass`, or
+  `escalate`), and the `reason`
+- `outcome` — `passed` or `escalated`
+- `iteration_count` — must equal the number of entries in `iterations`
+- `signal_links` — entries need `edit` and `signal`
+- `escalation.sticking_point` — required when `outcome` is `escalated`
 
 An escalation names the criterion and what was tried across iterations. "Could
 not get the voice right" is not a sticking point. "Campfire-voice failed three
