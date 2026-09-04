@@ -15,6 +15,28 @@ import yaml
 
 VALID_TYPES = ("deterministic", "judgment")
 
+
+def _get_fence_length(line: str) -> int | None:
+    """Get the backtick fence length for a line, or None if not a fence line.
+
+    A fence line is one whose first non-whitespace run is 3+ backticks.
+    Returns the length of the backtick run, or None if not a fence.
+    """
+    stripped = line.lstrip()
+    if not stripped.startswith('`'):
+        return None
+
+    # Count consecutive backticks at the start
+    count = 0
+    for char in stripped:
+        if char == '`':
+            count += 1
+        else:
+            break
+
+    return count if count >= 3 else None
+
+
 class RubricError(Exception):
     """Raised for any malformed or missing rubric. Never recovered from."""
 
@@ -80,13 +102,23 @@ def _section_entries(text: str, section: str, path: Path) -> list[dict]:
     # Find next section heading while respecting fence boundaries
     lines = remaining_text.split('\n')
     in_fence = False
+    fence_length = 0  # Track the opening fence's backtick count
     body_end = len(remaining_text)  # Default to end of text
     line_pos = 0
 
     for line in lines:
-        # Toggle fence state on ``` (can appear anywhere on the line)
-        if '```' in line:
-            in_fence = not in_fence
+        line_fence_len = _get_fence_length(line)
+
+        if line_fence_len is not None:
+            if not in_fence:
+                # Opening a fence
+                in_fence = True
+                fence_length = line_fence_len
+            elif line_fence_len >= fence_length:
+                # Closing a fence (only if backtick count >= opening)
+                in_fence = False
+                fence_length = 0
+            # else: shorter fence inside an open fence is content, do nothing
 
         # Check for section heading only if not in a fence
         if not in_fence and re.match(r"^##\s+", line):
@@ -100,19 +132,23 @@ def _section_entries(text: str, section: str, path: Path) -> list[dict]:
     # Extract YAML blocks from section body using line-by-line fence tracking
     body_lines = section_body.split('\n')
     in_fence = False
+    fence_length = 0  # Track the opening fence's backtick count
     yaml_blocks = []
     yaml_start = -1
 
     for i, line in enumerate(body_lines):
-        if line.strip().startswith('```yaml'):
-            if not in_fence:
-                in_fence = True
-                yaml_start = i + 1
+        line_fence_len = _get_fence_length(line)
+
+        if line_fence_len is not None and 'yaml' in line and not in_fence:
+            in_fence = True
+            fence_length = line_fence_len
+            yaml_start = i + 1
             continue
 
-        if line.strip().startswith('```') and in_fence:
+        if line_fence_len is not None and in_fence and line_fence_len >= fence_length:
             yaml_blocks.append('\n'.join(body_lines[yaml_start:i]))
             in_fence = False
+            fence_length = 0
             continue
 
     if len(yaml_blocks) == 0:

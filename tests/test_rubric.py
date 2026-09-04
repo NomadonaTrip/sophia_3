@@ -180,3 +180,38 @@ def test_yaml_comment_at_line_start_in_last_section(tmp_path):
     assert len(rubric.criteria) == 1
     assert rubric.criteria[0].id == "hook-strength"
     assert rubric.criteria[0].invariant is False
+
+
+def test_four_backtick_fence_with_nested_three_backtick_line(tmp_path):
+    """A four-backtick fence containing a three-backtick line inside should parse correctly."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n````yaml\n"
+        "- id: code-example\n"
+        "  type: judgment\n"
+        "  criterion: |\n"
+        "    Code block contains:\n"
+        "    ```\n"
+        "    some code here\n"
+        "    ```\n"
+        "````\n\n"
+        "## Tunable\n\n```yaml\n[]\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "code-example"
+    assert rubric.criteria[0].invariant is True
+    assert "```" in rubric.criteria[0].criterion
+
+
+def test_three_backtick_fence_closes_on_three_backticks(tmp_path):
+    """Normal three-backtick fences should close on matching three-backtick lines."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n- id: normal-case\n  type: judgment\n  criterion: x\n```\n\n"
+        "## Tunable\n\n```yaml\n[]\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "normal-case"
+    assert rubric.criteria[0].invariant is True
