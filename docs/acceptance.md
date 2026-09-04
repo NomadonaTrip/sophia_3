@@ -1,6 +1,6 @@
 # Acceptance Log
 
-The §9 validation gate from `prd.md`. The spine is covered by `python -m pytest`;
+The §9 validation gate from `prd.md`. The spine is covered by `python3 -m pytest`;
 this file is where the prompt-driven loop is validated, because it cannot be.
 
 Fill a row when you have evidence, and link the run directory that shows it.

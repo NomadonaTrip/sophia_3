@@ -16,7 +16,7 @@ has copy in front of them — or a named sticking point explaining why they do n
 
 ## Memory to load
 
-Load, via `python -m interfaces.retrieval`:
+Load, via `python3 -m interfaces.retrieval`:
 
 - `voice.md` — how this client sounds
 - `business.md` — what they do and what they sell

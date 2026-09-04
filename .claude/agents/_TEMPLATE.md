@@ -15,7 +15,7 @@ rubric_path: evals/<workflow-name>.md
 
 ## Memory to load
 
-Load, via `python -m interfaces.retrieval`:
+Load, via `python3 -m interfaces.retrieval`:
 
 - `voice.md` — how this client sounds
 - `business.md` — what they do and what they sell
