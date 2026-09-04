@@ -19,6 +19,19 @@ token, not as a check afterward.
 
 ## How to check
 
+Presence is a file check, not a search. Before concluding an input is
+missing, confirm it directly — read the file, or list the client directory:
+
+```bash
+ls memory/clients/<client>/
+```
+
+Confirm `voice.md`, `business.md`, and `icp.md` exist and are non-empty, and
+that `evals/<workflow>.md` exists.
+
+Retrieval is for finding something *inside* an input already known to be
+present — not for checking whether it is present:
+
 ```bash
 python3 -m interfaces.retrieval --client <client> --query "<term>" --scope voice
 python3 -m interfaces.retrieval --client <client> --query "<term>" --scope business
@@ -26,8 +39,10 @@ python3 -m interfaces.retrieval --client <client> --query "<term>" --scope icp
 python3 -m interfaces.retrieval --client <client> --query "<term>" --scope evals
 ```
 
-Retrieval returns `[]` for anything absent and never raises. Absence is not an
-error to retrieval — it is a decision for this gate to make, and here it is fatal.
+Retrieval returns `[]` when the query finds nothing in the input — that does not mean the input is absent, only that this query found nothing. Only a
+missing or empty file means the input is absent. Treating an empty retrieval
+result as absence would escalate on a voice profile that is present but was
+searched with the wrong term, blocking generation on a false premise.
 
 ## When something is missing
 

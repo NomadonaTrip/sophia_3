@@ -49,10 +49,10 @@ problems.
 
 | State | Action |
 |---|---|
-| Any invariant criterion fails | Regenerate, targeted at that criterion |
+| Any invariant criterion fails, and N < cap | Regenerate, targeted at that criterion |
 | Only tunable criteria fail, and N < cap | Regenerate |
 | Everything passes | Return the copy to the operator |
-| N equals the cap | Escalate |
+| N equals the cap | Escalate — whatever is still failing, invariant or tunable |
 
 **An invariant failure at the cap escalates. It never ships.** There is no
 draft good enough elsewhere to justify shipping one. If you find yourself

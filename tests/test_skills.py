@@ -107,3 +107,24 @@ def test_loop_names_every_trace_payload_field(loop_text):
         assert field in loop_text, field
     for field in ("edit", "signal"):
         assert field in loop_text, field
+
+
+def test_loop_decision_table_rows_are_mutually_exclusive_at_cap(loop_text):
+    """Both regenerate-triggering rows must be conditioned on N < cap, and the
+    cap row must cover both outcomes -- otherwise an invariant failure at the
+    cap matches two rows with opposite instructions, exactly the branch this
+    loop exists to make unrationalizable.
+    """
+    assert loop_text.count("N < cap") == 2
+    assert "N equals the cap" in loop_text
+    assert "whatever is still failing" in loop_text.lower()
+
+
+def test_research_first_separates_presence_from_search():
+    """An empty retrieval result must not be treated as proof an input is
+    absent -- retrieval returns [] both when a client directory is missing
+    and when a present file's query simply finds nothing.
+    """
+    text = (SKILLS / "research-first" / "SKILL.md").read_text().lower()
+    assert "does not mean" in text
+    assert "absent" in text
