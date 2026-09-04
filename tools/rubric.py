@@ -61,7 +61,8 @@ def load_rubric(path: Path) -> Rubric:
 def _section_entries(text: str, section: str, path: Path) -> list[dict]:
     """Extract YAML entries from a section, bounded by section headings.
 
-    The section body extends from the section heading to the next ## heading (or EOF).
+    The section body extends from the section heading to the next ## heading (or EOF),
+    but respects fence boundaries — a ## inside a code fence is not a section heading.
     This prevents regex from crossing section boundaries and leaking criteria.
     """
     # Find the section heading
@@ -72,30 +73,60 @@ def _section_entries(text: str, section: str, path: Path) -> list[dict]:
             f"{path}: missing '## {section}' section with a fenced yaml block"
         )
 
-    # Section body: from end of heading to the next ## heading (or EOF)
+    # Section body: from end of heading to the next ## heading (or EOF), respecting fences
     body_start = section_match.end()
-    next_section_match = re.search(r"^##\s+", text[body_start:], re.MULTILINE)
-    if next_section_match:
-        body_end = body_start + next_section_match.start()
-    else:
-        body_end = len(text)
+    remaining_text = text[body_start:]
 
-    section_body = text[body_start:body_end]
+    # Find next section heading while respecting fence boundaries
+    lines = remaining_text.split('\n')
+    in_fence = False
+    body_end = len(remaining_text)  # Default to end of text
+    line_pos = 0
 
-    # Look for all YAML fences within this section body
-    yaml_matches = list(re.finditer(r"```yaml\s*$(?P<body>.*?)^```\s*$", section_body, re.MULTILINE | re.DOTALL))
-    if len(yaml_matches) == 0:
+    for line in lines:
+        # Toggle fence state on ``` (can appear anywhere on the line)
+        if '```' in line:
+            in_fence = not in_fence
+
+        # Check for section heading only if not in a fence
+        if not in_fence and re.match(r"^##\s+", line):
+            body_end = line_pos
+            break
+
+        line_pos += len(line) + 1  # +1 for the newline character
+
+    section_body = remaining_text[:body_end]
+
+    # Extract YAML blocks from section body using line-by-line fence tracking
+    body_lines = section_body.split('\n')
+    in_fence = False
+    yaml_blocks = []
+    yaml_start = -1
+
+    for i, line in enumerate(body_lines):
+        if line.strip().startswith('```yaml'):
+            if not in_fence:
+                in_fence = True
+                yaml_start = i + 1
+            continue
+
+        if line.strip().startswith('```') and in_fence:
+            yaml_blocks.append('\n'.join(body_lines[yaml_start:i]))
+            in_fence = False
+            continue
+
+    if len(yaml_blocks) == 0:
         raise RubricError(
             f"{path}: missing '## {section}' section with a fenced yaml block"
         )
-    if len(yaml_matches) > 1:
+    if len(yaml_blocks) > 1:
         raise RubricError(
             f"{path}: '## {section}' contains multiple fenced yaml blocks; expected exactly one"
         )
 
-    yaml_match = yaml_matches[0]
+    yaml_content = yaml_blocks[0]
     try:
-        parsed = yaml.safe_load(yaml_match.group("body"))
+        parsed = yaml.safe_load(yaml_content)
     except yaml.YAMLError as exc:
         raise RubricError(f"{path}: malformed YAML in '{section}': {exc}") from exc
     if parsed is None:

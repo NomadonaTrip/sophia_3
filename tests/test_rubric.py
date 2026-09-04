@@ -152,3 +152,31 @@ def test_section_heading_inside_yaml_content_does_not_truncate(tmp_path):
     assert rubric.criteria[0].id == "a"
     assert rubric.criteria[0].invariant is True
     assert "##" in rubric.criteria[0].criterion
+
+
+def test_yaml_comment_at_line_start_does_not_truncate_section(tmp_path):
+    """A ## comment at column 0 inside a YAML fence should not truncate the section."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n## these are the criteria we never tune away\n"
+        "- id: campfire-voice\n  type: judgment\n  criterion: x\n```\n\n"
+        "## Tunable\n\n```yaml\n[]\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "campfire-voice"
+    assert rubric.criteria[0].invariant is True
+
+
+def test_yaml_comment_at_line_start_in_last_section(tmp_path):
+    """A ## comment at column 0 in the last section's YAML fence should not truncate."""
+    path = tmp_path / "r.md"
+    path.write_text(
+        "## Invariant\n\n```yaml\n[]\n```\n\n"
+        "## Tunable\n\n```yaml\n## these are tunable criteria\n"
+        "- id: hook-strength\n  type: judgment\n  criterion: earns the second line\n```\n"
+    )
+    rubric = load_rubric(path)
+    assert len(rubric.criteria) == 1
+    assert rubric.criteria[0].id == "hook-strength"
+    assert rubric.criteria[0].invariant is False
