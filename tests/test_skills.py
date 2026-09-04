@@ -109,15 +109,52 @@ def test_loop_names_every_trace_payload_field(loop_text):
         assert field in loop_text, field
 
 
+def _decision_table_rows(text: str) -> list[tuple[str, str]]:
+    rows = []
+    in_table = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("| State | Action |"):
+            in_table = True
+            continue
+        if not in_table:
+            continue
+        if stripped.startswith("|---"):
+            continue
+        if not stripped.startswith("|"):
+            break
+        parts = [p.strip() for p in stripped.strip("|").split("|")]
+        if len(parts) == 2:
+            rows.append((parts[0], parts[1]))
+    return rows
+
+
 def test_loop_decision_table_rows_are_mutually_exclusive_at_cap(loop_text):
-    """Both regenerate-triggering rows must be conditioned on N < cap, and the
-    cap row must cover both outcomes -- otherwise an invariant failure at the
-    cap matches two rows with opposite instructions, exactly the branch this
+    """Every state a draft can be in must match exactly one row. In
+    particular: an invariant failure at the cap must not also match a bare
+    "N equals the cap" row (old bug), and a pass at the cap must not also
+    match an unconditional "N equals the cap" escalate row (this review's
+    finding) -- otherwise the table double-matches at the exact branch this
     loop exists to make unrationalizable.
     """
-    assert loop_text.count("N < cap") == 2
-    assert "N equals the cap" in loop_text
-    assert "whatever is still failing" in loop_text.lower()
+    rows = _decision_table_rows(loop_text)
+    assert len(rows) == 4
+
+    states = [state for state, _ in rows]
+
+    # Both regenerate-triggering rows require being below the cap.
+    assert sum("N < cap" in s for s in states) == 2
+
+    # The escalate row must require something still failing, in its State
+    # column -- not just N == cap -- or it also matches a pass at the cap.
+    cap_state = next(s for s in states if "N equals the cap" in s)
+    assert "fail" in cap_state.lower()
+
+    # The passing row must not be conditioned on the cap at all, so it
+    # covers both N < cap and N == cap unambiguously, with no overlap
+    # against the (now failure-conditioned) escalate row.
+    pass_state = next(s for s in states if "Everything passes" in s)
+    assert "cap" not in pass_state.lower()
 
 
 def test_research_first_separates_presence_from_search():

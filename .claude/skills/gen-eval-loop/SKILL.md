@@ -52,7 +52,7 @@ problems.
 | Any invariant criterion fails, and N < cap | Regenerate, targeted at that criterion |
 | Only tunable criteria fail, and N < cap | Regenerate |
 | Everything passes | Return the copy to the operator |
-| N equals the cap | Escalate — whatever is still failing, invariant or tunable |
+| Something still fails (invariant or tunable), and N equals the cap | Escalate |
 
 **An invariant failure at the cap escalates. It never ships.** There is no
 draft good enough elsewhere to justify shipping one. If you find yourself
