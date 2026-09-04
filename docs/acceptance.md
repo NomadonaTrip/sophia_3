@@ -48,7 +48,7 @@ Read the series with:
 
 ```bash
 find memory/clients/<client>/episodic -name decision.json \
-  | sort | xargs -I{} sh -c 'python -c "
+  | sort | xargs -I{} sh -c 'python3 -c "
 import json,sys; d=json.load(open(sys.argv[1]));
 print(d[\"run_id\"], d[\"decision\"], d[\"edit_magnitude\"])" {}'
 ```
