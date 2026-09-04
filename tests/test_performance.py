@@ -92,6 +92,22 @@ def test_floors_are_overridable():
     assert artifact["sample_warning"] is False
 
 
+def test_build_artifact_tolerates_non_numeric_metric():
+    """A malformed ingest (e.g. impressions='lots') must not crash build_artifact."""
+    artifact = build_artifact(
+        "orban-forest", "gsc", PERIOD, [page(top={"impressions": "lots"})]
+    )
+    assert artifact["sample_warning"] is True
+
+
+def test_build_artifact_excludes_boolean_metric_from_volume_sum():
+    """bool is an int subclass in Python; a boolean metric must not count as 1."""
+    artifact = build_artifact(
+        "orban-forest", "gsc", PERIOD, [page(top={"impressions": True})]
+    )
+    assert artifact["sample_warning"] is True
+
+
 # --- validation ---
 
 def test_valid_artifact_passes():
@@ -117,6 +133,30 @@ def test_unknown_row_confidence_is_rejected():
         "orban-forest", "gsc", PERIOD, [page(confidence="probably")]
     )
     with pytest.raises(ArtifactError, match="row_confidence"):
+        validate_artifact(artifact)
+
+
+def test_pages_non_list_is_rejected_not_crashed():
+    """A malformed 'pages' shape must raise ArtifactError, not TypeError."""
+    artifact = build_artifact("orban-forest", "gsc", PERIOD, [page()])
+    artifact["pages"] = 5
+    with pytest.raises(ArtifactError, match="pages"):
+        validate_artifact(artifact)
+
+
+def test_stage_signals_non_dict_is_rejected_not_crashed():
+    """A malformed 'stage_signals' shape must raise ArtifactError, not TypeError."""
+    artifact = build_artifact("orban-forest", "gsc", PERIOD, [page()])
+    artifact["pages"][0]["stage_signals"] = "nope"
+    with pytest.raises(ArtifactError, match="stage_signals"):
+        validate_artifact(artifact)
+
+
+def test_stage_value_non_dict_is_rejected_not_crashed():
+    """A malformed stage value (e.g. a list) must raise ArtifactError, not TypeError."""
+    artifact = build_artifact("orban-forest", "gsc", PERIOD, [page()])
+    artifact["pages"][0]["stage_signals"]["mid"] = ["not", "a", "dict"]
+    with pytest.raises(ArtifactError, match="mid"):
         validate_artifact(artifact)
 
 

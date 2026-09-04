@@ -74,7 +74,7 @@ def _sum_metric(pages: list[dict], stage: str, key: str) -> float:
     total = 0.0
     for page in pages:
         value = page.get("stage_signals", {}).get(stage, {}).get(key)
-        if value is not None:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
             total += value
     return total
 
@@ -98,6 +98,10 @@ def validate_artifact(payload: dict) -> None:
     for key in ("start", "end"):
         if key not in payload["period"]:
             raise ArtifactError(f"period missing '{key}'")
+    if not isinstance(payload["pages"], list):
+        raise ArtifactError(
+            f"pages must be a list, got {type(payload['pages']).__name__}"
+        )
     for page in payload["pages"]:
         _validate_page(page)
 
@@ -114,11 +118,22 @@ def _validate_page(page: object) -> None:
             f"got {page['row_confidence']!r}"
         )
     signals = page["stage_signals"]
+    if not isinstance(signals, dict):
+        raise ArtifactError(
+            f"page {page['url']!r} stage_signals must be an object, "
+            f"got {type(signals).__name__}"
+        )
     for stage, keys in _STAGE_KEYS.items():
         if stage not in signals:
             raise ArtifactError(f"page {page['url']!r} missing stage {stage!r}")
+        stage_values = signals[stage]
+        if not isinstance(stage_values, dict):
+            raise ArtifactError(
+                f"page {page['url']!r} stage {stage!r} must be an object, "
+                f"got {type(stage_values).__name__}"
+            )
         for key in keys:
-            if key not in signals[stage]:
+            if key not in stage_values:
                 raise ArtifactError(
                     f"page {page['url']!r} stage {stage!r} missing metric {key!r}"
                 )
