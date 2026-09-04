@@ -62,8 +62,8 @@ class GrepRetriever:
             ["grep", "-rFn", "--", query, str(target)],
             capture_output=True, text=True,
         )
-        if proc.returncode not in (0, 1):  # 1 == no match, which is not an error
-            return []
+        # Parse stdout regardless of return code. Exit code 2 may occur with
+        # unreadable files but stdout still contains valid matches from readable files.
 
         hits: list[Hit] = []
         client_root = self.memory_root / "clients" / client
@@ -78,9 +78,9 @@ class GrepRetriever:
                     scope=scope or self._infer_scope(Path(path), client_root),
                 )
             )
-            if len(hits) >= limit:
-                break
-        return hits
+        # Sort by (path, line) for reproducible truncation, then apply limit.
+        hits.sort(key=lambda h: (h.path, h.line))
+        return hits[:limit]
 
     def _target(self, client: str, scope: str | None) -> Path | None:
         client_root = self.memory_root / "clients" / client
@@ -120,7 +120,10 @@ class GrepRetriever:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Search client memory.")
     parser.add_argument("--client", required=True)
-    parser.add_argument("--query", required=True)
+    parser.add_argument(
+        "--query", required=True,
+        help="Search phrase. Use --query=-x form for phrases beginning with a dash.",
+    )
     parser.add_argument("--scope", choices=SCOPES, default=None)
     parser.add_argument("--limit", type=int, default=20)
     parser.add_argument("--memory-root", type=Path, default=DEFAULT_MEMORY_ROOT)

@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -70,6 +71,35 @@ def test_limit_caps_results(memory_root):
         "leverage", client="orban-forest", limit=1
     )
     assert len(hits) == 1
+    # After sorting by (path, line), evals/webcopy.md comes before voice.md
+    assert "evals" in hits[0].path or Path(hits[0].path).name == "webcopy.md"
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="chmod does not restrict root")
+def test_unreadable_file_does_not_block_readable_matches(memory_root):
+    """grep exit code 2 (unreadable file) should not discard valid matches."""
+    # Create a scope directory with two files
+    scope_dir = memory_root / "clients" / "orban-forest" / "performance"
+    scope_dir.mkdir(parents=True, exist_ok=True)
+
+    readable_file = scope_dir / "readable.md"
+    unreadable_file = scope_dir / "unreadable.md"
+
+    readable_file.write_text("# Readable\nThis file contains leverage\n")
+    unreadable_file.write_text("# Unreadable\nShould not be readable\n")
+
+    # Make unreadable_file inaccessible
+    os.chmod(unreadable_file, 0o000)
+    try:
+        # Search should still find the match in the readable file
+        hits = GrepRetriever(memory_root).search(
+            "leverage", client="orban-forest", scope="performance"
+        )
+        assert len(hits) == 1
+        assert Path(hits[0].path).name == "readable.md"
+    finally:
+        # Restore permissions so tmp_path can clean up
+        os.chmod(unreadable_file, 0o644)
 
 
 def test_unknown_scope_is_an_error(memory_root):
