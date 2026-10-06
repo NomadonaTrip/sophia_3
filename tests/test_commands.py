@@ -53,6 +53,43 @@ def test_onboard_verify_step_does_not_blame_the_rubric_for_uncited_stats(onboard
     assert "uncited" in onboard.lower()
 
 
+def test_onboard_resumes_from_saved_state(onboard):
+    assert "tools/onboarding.py status" in onboard
+    assert "resume" in onboard.lower()
+
+
+def test_onboard_logs_every_message(onboard):
+    assert "tools/onboarding.py log" in onboard
+
+
+def test_onboard_saves_then_asks_before_discarding(onboard):
+    save = onboard.index("tools/onboarding.py save")
+    discard = onboard.index("tools/onboarding.py discard")
+    assert save < discard
+    assert "tools/onboarding.py keep" in onboard
+
+
+def test_onboard_offers_restart_and_confirms_before_reset(onboard):
+    assert "tools/onboarding.py reset" in onboard
+    lowered = onboard.lower()
+    assert "restart" in lowered
+    assert "confirm" in lowered
+
+
+def test_onboard_writes_the_profile_from_saved_decisions(onboard):
+    assert "decisions.json" in onboard
+
+
+def test_onboard_asks_before_overwriting_profile_files(onboard):
+    assert "profile_files" in onboard
+    assert "overwrit" in onboard.lower()
+
+
+def test_session_log_is_git_ignored():
+    text = (REPO_ROOT / ".gitignore").read_text()
+    assert "memory/clients/*/onboarding/session.jsonl" in text
+
+
 @pytest.fixture
 def revise() -> str:
     return (COMMANDS / "revise.md").read_text()

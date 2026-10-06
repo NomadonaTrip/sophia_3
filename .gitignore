@@ -5,3 +5,10 @@ __pycache__/
 .venv/
 venv/
 .superpowers/
+
+# Onboarding scratch log: discarded on operator approval, never committed
+memory/clients/*/onboarding/session.jsonl
+
+# Client data never leaves this machine; this repo has a public remote
+memory/clients/
+memory/samples/
