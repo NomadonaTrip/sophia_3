@@ -54,12 +54,14 @@ python3 tools/trace.py    write --client C --run-id ID --payload PATH|-
 python3 tools/ingest_gsc.py --client C --csv PATH [--period S:E] [--source screenshot]
 python3 tools/ingest_ga4.py --client C --csv PATH [--period S:E] [--source screenshot]
 python3 tools/approve.py  --client C --run-id ID --decision approve|edit|reject
+python3 tools/onboarding.py status|log|save|discard|keep|reset --client C [...]
 ```
 
 ## Memory
 
 `memory/clients/<client>/` — `business.md`, `icp.md`, `voice.md`,
-`evals/webcopy.md`, `episodic/`, `performance/`. Git-tracked, ext4, local only.
+`evals/webcopy.md`, `episodic/`, `performance/`, `onboarding/`. Git-ignored:
+this repo has a public remote. ext4, local only.
 Client data does not leave this machine.
 
 ## Tests

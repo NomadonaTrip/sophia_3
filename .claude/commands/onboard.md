@@ -8,6 +8,70 @@ argument-hint: <client-name>
 Produce the four artifacts a workflow needs before it can generate anything:
 `business.md`, `icp.md`, `voice.md`, and `evals/webcopy.md`.
 
+## Resume or restart
+
+Onboarding survives the session ending. Before anything else:
+
+```bash
+python3 tools/onboarding.py status --client $1
+```
+
+Sections run in order: `seed`, `business`, `customer`, `constraints`, `voice`,
+`rubric`, `written`.
+
+- **Nothing saved** — start at `seed`.
+- **Progress saved** — summarise it in a line ("business and customer settled;
+  constraints half-done") and ask: **resume, restart a section, or restart
+  from scratch?**
+  - *Resume* — read back each settled decision in brief, then pick up at
+    `next`. If `in_progress` holds messages for that section, continue from
+    where they stop rather than re-asking what was already answered.
+  - Any section in `recheck` was settled before an earlier section was redone.
+    Read its decision back and ask whether it still holds; re-save it if so.
+  - Any section in `discard_pending` is settled but its messages were never
+    cleared. Ask the discard question below for it.
+
+The operator can say "restart" at any point. Before resetting, say exactly
+what will be cleared and wait for them to confirm:
+
+```bash
+python3 tools/onboarding.py reset --client $1                     # everything
+python3 tools/onboarding.py reset --client $1 --section <section> # one section
+```
+
+A section reset flags every later settled section for recheck. A reset never
+touches the profile files or the samples.
+
+## Log every message
+
+Every message in the interview — your questions and the operator's answers —
+is logged as it happens, before you reply:
+
+```bash
+python3 tools/onboarding.py log --client $1 --section <section> --role sophia|operator --text -
+```
+
+## Settle each section
+
+A section is settled when the operator confirms your read-back of it. Then:
+
+1. Save the decision — the substance the artifacts will be written from, not
+   a transcript:
+
+   ```bash
+   python3 tools/onboarding.py save --client $1 --section <section> --payload -
+   ```
+
+2. Ask: *"Decision for `<section>` saved. OK to discard the session messages
+   for it?"*
+   - Yes:
+     `python3 tools/onboarding.py discard --client $1 --section <section>`
+   - No:
+     `python3 tools/onboarding.py keep --client $1 --section <section>`
+
+Never discard before the save succeeds; the tool refuses, and that refusal is
+a spine failure, not something to route around.
+
 ## Hard stop: seed material is required
 
 Ask the operator for existing copy — a current site, past pages, brochures,
@@ -21,9 +85,12 @@ error. Say so plainly and offer to resume when samples exist.
 
 Do not substitute samples from another client, another project, or the web.
 
+Settle `seed` with the paths of the samples the operator confirmed.
+
 ## Interview
 
-Ask one question at a time. Cover:
+Ask one question at a time. Each numbered topic is its own section — settle it
+before moving on. Cover:
 
 1. **Business** — what they sell, how they make money, what they will not do,
    what a good job looks like to them.
@@ -40,7 +107,20 @@ Invoke the `voice-match` skill. Fill its marker table from the samples, quoting
 a line for each marker. Anything the samples do not show is recorded as unknown,
 never filled with a plausible default.
 
+Section names: Business → `business`, Customer → `customer`, Constraints →
+`constraints`, Voice → `voice` (settled once the operator has corrected the
+extracted marker table).
+
 ## Write the artifacts
+
+Write from the saved decisions in
+`memory/clients/$1/onboarding/decisions.json`, not from memory of the
+conversation — after a resume, that file is the only record of earlier
+sections.
+
+Check `profile_files` in the status output first. If any of the four already
+exist, show the operator what is there and get an explicit yes before
+overwriting it.
 
 Write to `memory/clients/$1/`:
 
@@ -79,6 +159,8 @@ during the interview:
 - judgment criteria for hook and flow, written against what the samples do
 
 Show the operator the rubric before writing it. It is their control surface.
+Their approval settles `rubric`; save the approved rubric as its decision.
+Once all four files are written, settle `written` with the list of files.
 
 ## Verify
 
